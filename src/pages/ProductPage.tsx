@@ -1,19 +1,10 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import productsData from '../data/products.json';
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .substring(0, 80);
-}
+import { Navbar } from '../components/Navbar';
+import { useWishlist } from '../context/WishlistContext';
+import { slugify } from '../lib/utils';
 
 interface Product {
   title: string;
@@ -31,7 +22,9 @@ const FALLBACK_IMG = 'https://images.unsplash.com/photo-1523275335684-37898b6baf
 
 export default function ProductPage() {
   const { slug } = useParams<{ slug: string }>();
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Remove or comment out if unused
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  
   const product = (productsData as Product[]).find(p => (p.slug || slugify(p.title)) === slug);
 
   const [activeImg, setActiveImg] = useState(0);
@@ -60,31 +53,16 @@ export default function ProductPage() {
 
   const whatsappLink = `https://wa.me/521234567890?text=Hola,%20me%20interesa%20el%20reloj:%20${encodeURIComponent(product.title)}%20(${product.price})`;
 
-  // Productos relacionados (misma categoría, excluye el actual)
   const related = (productsData as Product[])
     .filter(p => p.category === product.category && (p.slug || slugify(p.title)) !== slug)
     .slice(0, 4);
 
+  const isFav = isInWishlist(slug || '');
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white font-sans">
+      <Navbar />
 
-      {/* Navbar mínimo */}
-      <nav className="flex items-center justify-between px-8 py-6 bg-black/80 backdrop-blur-md border-b border-white/5 sticky top-0 z-50">
-        <Link to="/" className="text-2xl font-black tracking-[0.3em] text-[#c9a84c]">
-          ROYAL WATCH
-        </Link>
-        <button
-          onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-white/50 hover:text-white transition-colors text-sm font-semibold"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Volver
-        </button>
-      </nav>
-
-      {/* Breadcrumb */}
       <div className="container mx-auto px-8 py-4">
         <div className="flex items-center gap-2 text-xs text-white/30 font-semibold uppercase tracking-widest">
           <Link to="/" className="hover:text-[#c9a84c] transition-colors">Inicio</Link>
@@ -97,13 +75,9 @@ export default function ProductPage() {
         </div>
       </div>
 
-      {/* Contenido principal */}
       <div className="container mx-auto px-8 py-12">
         <div className="grid lg:grid-cols-2 gap-16 items-start">
-
-          {/* ─── Galería de imágenes ─── */}
           <div className="sticky top-28">
-            {/* Imagen principal */}
             <motion.div
               className="relative aspect-square bg-[#0d0d0d] rounded-[48px] overflow-hidden mb-4 cursor-zoom-in border border-white/5"
               onClick={() => setLightboxOpen(true)}
@@ -125,7 +99,6 @@ export default function ProductPage() {
               </div>
             </motion.div>
 
-            {/* Thumbnails */}
             {allImages.length > 1 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
                 {allImages.map((img, i) => (
@@ -145,41 +118,37 @@ export default function ProductPage() {
             )}
           </div>
 
-          {/* ─── Información del producto ─── */}
           <div>
-            {/* Badge categoría */}
-            <span className="inline-block px-4 py-1.5 bg-[#c9a84c]/10 border border-[#c9a84c]/20 rounded-full text-[#c9a84c] text-xs font-black uppercase tracking-widest mb-6">
-              {product.category}
-            </span>
+            <div className="flex justify-between items-start mb-6">
+              <span className="inline-block px-4 py-1.5 bg-[#c9a84c]/10 border border-[#c9a84c]/20 rounded-full text-[#c9a84c] text-xs font-black uppercase tracking-widest">
+                {product.category}
+              </span>
+              <button 
+                onClick={() => isFav ? removeFromWishlist(slug!) : addToWishlist(product)}
+                className={`p-3 rounded-2xl border transition-all ${isFav ? 'bg-[#c9a84c]/10 border-[#c9a84c]/40 text-[#c9a84c]' : 'bg-white/5 border-white/10 text-white/30 hover:text-white'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isFav ? 'fill-current' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
+            </div>
 
-            {/* Título */}
             <h1 className="text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight mb-8">
               {product.title}
             </h1>
 
-            {/* Precio */}
             <div className="mb-8 pb-8 border-b border-white/5">
               <p className="text-white/30 text-xs font-bold uppercase tracking-widest mb-2">Inversión</p>
               <p className="text-5xl font-black text-[#c9a84c] tracking-tighter">{product.price}</p>
             </div>
 
-            {/* Descripción */}
-            {product.description ? (
-              <div className="mb-8 pb-8 border-b border-white/5">
-                <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-3">Descripción</h3>
-                <p className="text-white/60 leading-relaxed">{product.description}</p>
-              </div>
-            ) : (
-              <div className="mb-8 pb-8 border-b border-white/5">
-                <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-3">Descripción</h3>
-                <p className="text-white/60 leading-relaxed">
-                  Maquinaria de movimiento continuo, cristal de zafiro anti-rayas y acero quirúrgico 316L.
-                  Réplica 1:1 con materiales idénticos al original. Incluye caja premium de regalo y garantía.
-                </p>
-              </div>
-            )}
+            <div className="mb-8 pb-8 border-b border-white/5">
+              <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-3">Descripción</h3>
+              <p className="text-white/60 leading-relaxed">
+                {product.description || 'Maquinaria de movimiento continuo, cristal de zafiro anti-rayas y acero quirúrgico 316L. Réplica 1:1 con materiales idénticos al original. Incluye caja premium de regalo y garantía.'}
+              </p>
+            </div>
 
-            {/* Especificaciones */}
             {product.specs && Object.keys(product.specs).length > 0 && (
               <div className="mb-8 pb-8 border-b border-white/5">
                 <h3 className="text-sm font-black uppercase tracking-widest text-white/40 mb-4">Especificaciones</h3>
@@ -194,7 +163,6 @@ export default function ProductPage() {
               </div>
             )}
 
-            {/* Features estáticas */}
             <div className="grid grid-cols-2 gap-3 mb-8">
               {[
                 { icon: '💎', text: 'Calidad 1:1' },
@@ -209,7 +177,6 @@ export default function ProductPage() {
               ))}
             </div>
 
-            {/* CTA */}
             <div className="flex flex-col gap-3">
               <motion.a
                 whileHover={{ scale: 1.02 }}
@@ -231,7 +198,6 @@ export default function ProductPage() {
           </div>
         </div>
 
-        {/* ─── Productos relacionados ─── */}
         {related.length > 0 && (
           <div className="mt-24 pt-16 border-t border-white/5">
             <h2 className="text-3xl font-black text-white mb-2">También te puede interesar</h2>
@@ -261,7 +227,6 @@ export default function ProductPage() {
         )}
       </div>
 
-      {/* ─── Lightbox ─── */}
       <AnimatePresence>
         {lightboxOpen && (
           <motion.div
