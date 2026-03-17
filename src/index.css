@@ -1,22 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0056b3;
-  --color-secondary: #f8fafc;
+  --color-primary: #c9a84c;
+  --color-secondary: #0d0d0d;
 }
 
 :root {
-  --primary: #0056b3;
-  --primary-foreground: #ffffff;
+  --gold: #c9a84c;
+  --gold-dim: #b8962e;
+  --bg-deep: #0a0a0a;
+  --bg-card: #111111;
+  --bg-input: #1a1a1a;
 }
 
 body {
-  @apply bg-white text-slate-900 antialiased;
+  @apply antialiased;
+  background-color: #0a0a0a;
+  color: #ffffff;
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
-/* Custom utility for the glass effect if needed */
-.glass {
-  @apply bg-white/80 backdrop-blur-md border border-white/20;
+.glass-dark {
+  background: rgba(17, 17, 17, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
