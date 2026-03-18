@@ -67,9 +67,9 @@ export default function ProductPage() {
     );
   }
 
-  const allImages = product.specs?.images && product.specs.images.length > 0
-    ? product.specs.images
-    : [product.img || FALLBACK_IMG];
+  const specImages: string[] = Array.isArray(product.specs?.images) ? product.specs.images.filter(Boolean) : [];
+  const mainImg = product.img || FALLBACK_IMG;
+  const allImages = specImages.length > 0 ? specImages : [mainImg];
 
   const whatsappLink = `https://wa.me/521234567890?text=Hola,%20me%20interesa%20el%20reloj:%20${encodeURIComponent(product.title)}%20(${product.price})`;
 
