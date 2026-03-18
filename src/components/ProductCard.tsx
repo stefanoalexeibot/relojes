@@ -1,3 +1,24 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+interface Product {
+  title: string;
+  price: string;
+  link: string | null;
+  img: string | null;
+  category: string;
+  slug: string;
+}
+
+interface ProductCardProps {
+  product: Product;
+  isLoading?: boolean;
+  isFav?: boolean;
+  onToggleFav?: (slug: string) => void;
+  viewMode?: 'grid' | 'list';
+}
+
 export const ProductCard = ({
   product, isLoading, isFav, onToggleFav, viewMode = 'grid',
 }: ProductCardProps) => {
@@ -5,7 +26,28 @@ export const ProductCard = ({
   const [imgLoaded, setImgLoaded] = useState(false);
 
   if (isLoading) {
-    // ... (keep the same loading states)
+    if (viewMode === 'list') {
+      return (
+        <div className="bg-[#111] rounded-3xl p-4 h-28 animate-pulse border border-white/5 flex gap-4">
+          <div className="w-20 h-20 bg-[#222] rounded-2xl flex-shrink-0"></div>
+          <div className="flex-1 space-y-3 py-2">
+            <div className="h-4 bg-[#222] rounded-full w-3/4"></div>
+            <div className="h-4 bg-[#222] rounded-full w-1/3"></div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="bg-[#111] rounded-[40px] p-5 h-[450px] animate-pulse border border-white/5">
+        <div className="aspect-square bg-[#222] rounded-[32px] mb-6"></div>
+        <div className="h-4 bg-[#222] rounded-full w-3/4 mb-3"></div>
+        <div className="h-4 bg-[#222] rounded-full w-1/2 mb-8"></div>
+        <div className="flex justify-between items-center">
+          <div className="h-8 bg-[#222] rounded-full w-24"></div>
+          <div className="h-12 w-12 bg-[#222] rounded-2xl"></div>
+        </div>
+      </div>
+    );
   }
 
   const slug = product.slug || ''; // Should always be present from Supabase
