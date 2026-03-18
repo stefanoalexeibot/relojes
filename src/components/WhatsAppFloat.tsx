@@ -16,7 +16,7 @@ export const WhatsAppFloat = () => {
       transition={{ delay: 1 }}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      href="https://wa.me/521234567890"
+      href="https://wa.me/528121980008"
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-10 right-10 z-[100] bg-green-500 text-white p-5 rounded-full shadow-2xl shadow-green-500/20 flex items-center justify-center group"

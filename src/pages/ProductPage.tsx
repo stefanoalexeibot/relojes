@@ -71,7 +71,7 @@ export default function ProductPage() {
   const mainImg = product.img || FALLBACK_IMG;
   const allImages = specImages.length > 0 ? specImages : [mainImg];
 
-  const whatsappLink = `https://wa.me/521234567890?text=Hola,%20me%20interesa%20el%20reloj:%20${encodeURIComponent(product.title)}%20(${product.price})`;
+  const whatsappLink = `https://wa.me/528121980008?text=Hola,%20me%20interesa%20el%20reloj:%20${encodeURIComponent(product.title)}%20(${product.price})`;
 
   const isFav = isInWishlist(slug || '');
 

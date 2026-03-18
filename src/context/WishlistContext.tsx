@@ -50,7 +50,7 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const getWhatsAppUrl = () => {
     const message = `Hola, me interesa cotizar estos relojes de Royal Watch:\n\n${wishlist.map((p, i) => `${i + 1}. ${p.title} (${p.price})`).join('\n')}\n\nTotal piezas: ${wishlist.length}`;
-    return `https://wa.me/521234567890?text=${encodeURIComponent(message)}`;
+    return `https://wa.me/528121980008?text=${encodeURIComponent(message)}`;
   };
 
   return (
