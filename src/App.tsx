@@ -1,9 +1,13 @@
-import productsData from './data/products.json';
 import { useState, useMemo, useEffect } from 'react';
 import { Routes, Route, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductPage from './pages/ProductPage';
 import WishlistPage from './pages/WishlistPage';
+import { productService, type Product } from './services/productService';
+
+// Hooks y Utils
+import { useDebounce } from './hooks/useDebounce';
+import { useWishlist } from './context/WishlistContext';
 
 // Componentes
 import { Navbar } from './components/Navbar';
@@ -14,29 +18,11 @@ import { Testimonials } from './components/Testimonials';
 import { ProductCard } from './components/ProductCard';
 import { WhatsAppFloat } from './components/WhatsAppFloat';
 import { PriceRangeSlider } from './components/PriceRangeSlider';
+import { RecentSaleNotification } from './components/RecentSaleNotification';
 
-// Hooks y Utils
-import { useDebounce } from './hooks/useDebounce';
-import { useWishlist } from './context/WishlistContext';
-import { slugify, parsePrice } from './lib/utils';
-
-// ... (remaining CatalogPage code)
-// I'll use multi_replace to only change necessary parts to save tokens if possible,
-// but for now I'll provide the updated file structure to ensure routes are correct.
-// Since App.tsx was already refactored, I just need to add the route.
-
-interface Product {
-  title: string;
-  price: string;
-  link: string | null;
-  img: string | null;
-  category: string;
-  slug?: string;
-}
-
-const allPrices = (productsData as Product[]).map(p => parsePrice(p.price)).filter(Boolean);
-const PRICE_MIN = Math.floor(Math.min(...allPrices));
-const PRICE_MAX = Math.ceil(Math.max(...allPrices));
+// Initial constants will be recalculated after product fetch
+let PRICE_MIN = 0;
+let PRICE_MAX = 50000;
 
 function CatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,31 +40,53 @@ function CatalogPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { wishlist, addToWishlist, isInWishlist, removeFromWishlist } = useWishlist();
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 900);
-    return () => clearTimeout(timer);
+    async function loadProducts() {
+      try {
+        setIsLoading(true);
+        const data = await productService.getProducts();
+        setProducts(data);
+        
+        if (data.length > 0) {
+          const prices = data.map(p => p.price_numeric).filter(Boolean);
+          const min = Math.floor(Math.min(...prices));
+          const max = Math.ceil(Math.max(...prices));
+          setPriceMin(min);
+          setPriceMax(max);
+        }
+      } catch (err) {
+        console.error('Error loading products:', err);
+        setError('No se pudo cargar el catálogo. Por favor, intenta de nuevo más tarde.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadProducts();
   }, []);
 
   useEffect(() => { setVisibleCount(24); }, [filter, search, sortBy, priceMin, priceMax, showFavsOnly]);
 
-  const categories = useMemo(() => ['all', ...new Set(productsData.map(p => p.category))], []);
+  const categories = useMemo(() => ['all', ...new Set(products.map(p => p.category))], [products]);
 
   const filteredProducts = useMemo(() => {
-    let list = productsData.filter((p: any) => {
+    let list = products.filter((p) => {
       const matchesCat = filter === 'all' || p.category === filter;
       const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase());
-      const price = parsePrice(p.price);
+      const price = p.price_numeric;
       const matchesPrice = price >= priceMin && price <= priceMax;
-      const slug = p.slug || slugify(p.title);
-      const matchesFav = !showFavsOnly || wishlist.some(p => (p.slug || slugify(p.title)) === slug);
+      const slug = p.slug;
+      const matchesFav = !showFavsOnly || wishlist.some(fav => fav.slug === slug);
       return matchesCat && matchesSearch && matchesPrice && matchesFav;
     });
 
-    if (sortBy === 'price-asc') list = [...list].sort((a: any, b: any) => parsePrice(a.price) - parsePrice(b.price));
-    if (sortBy === 'price-desc') list = [...list].sort((a: any, b: any) => parsePrice(b.price) - parsePrice(a.price));
+    if (sortBy === 'price-asc') list = [...list].sort((a, b) => a.price_numeric - b.price_numeric);
+    if (sortBy === 'price-desc') list = [...list].sort((a, b) => b.price_numeric - a.price_numeric);
 
     return list;
-  }, [filter, search, sortBy, priceMin, priceMax, showFavsOnly, wishlist]);
+  }, [products, filter, search, sortBy, priceMin, priceMax, showFavsOnly, wishlist]);
 
   const handleFilterChange = (cat: string) => {
     setFilter(cat);
@@ -216,6 +224,18 @@ function CatalogPage() {
           )}
         </div>
 
+        {error && (
+          <div className="mb-12 p-6 bg-red-500/10 border border-red-500/20 rounded-[32px] text-center">
+            <p className="text-red-400 font-bold">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-4 text-[#c9a84c] text-sm font-black uppercase tracking-widest hover:underline"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
+
         {isLoading ? (
           <div className={viewMode === 'grid'
             ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8'
@@ -236,7 +256,7 @@ function CatalogPage() {
             >
               <AnimatePresence mode="popLayout">
                 {filteredProducts.slice(0, visibleCount).map((product: any, idx) => {
-                  const slug = product.slug || slugify(product.title);
+                  const slug = product.slug;
                   return (
                     <ProductCard
                       key={product.title + idx}
@@ -326,6 +346,7 @@ function CatalogPage() {
         </div>
       </footer>
       <WhatsAppFloat />
+      <RecentSaleNotification />
     </div>
   );
 }

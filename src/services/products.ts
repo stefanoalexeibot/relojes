@@ -50,7 +50,7 @@ export const productService = {
 
   async getRelatedProducts(category: string, currentSlug: string, limit = 4) {
     const { data, error } = await supabase
-      .from('products')
+      .from('rw_products')
       .select('*')
       .eq('category', category)
       .neq('slug', currentSlug)

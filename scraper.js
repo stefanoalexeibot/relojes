@@ -67,14 +67,17 @@ async function scrapeCategoryPage(url, categoryName) {
                 || $(el).find('a').first().attr('href')
                 || null;
 
-      // Imagen principal con múltiples fallbacks para lazy loading
+      // Imagen principal con múltiples fallbacks para alta resolución
       const imgEl = $(el).find('img');
-      const img = imgEl.attr('data-large_image')
+      let img = imgEl.attr('data-large_image')
                || imgEl.attr('data-src')
                || imgEl.attr('data-lazy-src')
-               || imgEl.attr('srcset')?.split(' ')[0]
-               || imgEl.attr('src')
-               || null;
+               || imgEl.attr('src');
+      
+      // Intentar limpiar URL de miniatura ( Trusty suele usar x-y.jpg para thumbs)
+      if (img && img.includes('-350x467')) {
+        img = img.replace('-350x467', '');
+      }
 
       if (title) {
         products.push({
@@ -127,14 +130,37 @@ async function scrapeProductDetail(url) {
     const { data } = await axios.get(url, { headers, timeout: 20000 });
     const $ = cheerio.load(data);
 
-    // Todas las imágenes de la galería
+    // Todas las imágenes de la galería (Filtramos duplicados y vacíos)
     const images = [];
-    $('.woocommerce-product-gallery__image img').each((_i, el) => {
-      const src = $(el).attr('data-large_image')
+    const selectors = [
+      '.woocommerce-product-gallery__image img',
+      '.product-images img',
+      '.product-thumbnails img',
+      '.images img',
+      '.wp-post-image'
+    ];
+    
+    $(selectors.join(',')).each((_i, el) => {
+      let src = $(el).attr('data-large_image')
                || $(el).attr('data-src')
+               || $(el).attr('data-lazy-src')
                || $(el).attr('src');
-      if (src && !src.startsWith('data:') && !images.includes(src)) {
-        images.push(src);
+      
+      if (src && !src.startsWith('data:')) {
+        // Limpiar sufijos de miniaturas para obtener la versión original en HD
+        const thumbnailSuffixes = [
+          '-100x100', '-150x150', '-300x300', '-350x467', 
+          '-450x600', '-600x800', '-450x450', '-600x600',
+          '-scaled'
+        ];
+        
+        thumbnailSuffixes.forEach(suffix => {
+          if (src.includes(suffix)) src = src.replace(suffix, '');
+        });
+        
+        if (!images.includes(src)) {
+          images.push(src);
+        }
       }
     });
 
@@ -160,8 +186,18 @@ async function scrapeProductDetail(url) {
       specs: Object.keys(specs).length > 0 ? specs : undefined,
     };
 
+    return {
+      images: images.length > 0 ? images : undefined,
+      description: description || fullDescription || undefined,
+      specs: Object.keys(specs).length > 0 ? specs : undefined,
+    };
+
   } catch (error) {
-    console.error(`    ✗ Error detalle: ${error.message}`);
+    if (error.response?.status === 404) {
+      console.error(`    ⚠ 404 Not Found: ${url}`);
+    } else {
+      console.error(`    ✗ Error detalle: ${error.message}`);
+    }
     return {};
   }
 }
@@ -189,10 +225,14 @@ async function main() {
 
     if (p.link) {
       const detail = await scrapeProductDetail(p.link);
-      if (detail.images) allProducts[i].images = detail.images;
+      if (detail.images) {
+        allProducts[i].images = detail.images;
+        process.stdout.write(` ✓ (${detail.images.length} fotos)\n`);
+      } else {
+        process.stdout.write(' ✓ (sin galería)\n');
+      }
       if (detail.description) allProducts[i].description = detail.description;
       if (detail.specs) allProducts[i].specs = detail.specs;
-      process.stdout.write(' ✓\n');
     } else {
       process.stdout.write(' (sin link)\n');
     }

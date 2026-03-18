@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { slugify } from '../lib/utils';
 
 interface Product {
   title: string;
   price: string;
   category: string;
-  slug?: string;
+  slug: string;
   img?: string | null;
 }
 
@@ -34,18 +33,17 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [wishlist]);
 
   const addToWishlist = (product: Product) => {
-    const slug = product.slug || slugify(product.title);
-    if (!wishlist.find(p => (p.slug || slugify(p.title)) === slug)) {
-      setWishlist([...wishlist, { ...product, slug }]);
+    if (!wishlist.find(p => p.slug === product.slug)) {
+      setWishlist([...wishlist, product]);
     }
   };
 
   const removeFromWishlist = (slug: string) => {
-    setWishlist(wishlist.filter(p => (p.slug || slugify(p.title)) !== slug));
+    setWishlist(wishlist.filter(p => p.slug !== slug));
   };
 
   const isInWishlist = (slug: string) => {
-    return !!wishlist.find(p => (p.slug || slugify(p.title)) === slug);
+    return !!wishlist.find(p => p.slug === slug);
   };
 
   const clearWishlist = () => setWishlist([]);
